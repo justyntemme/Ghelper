@@ -38,20 +38,19 @@ type Notepad struct { //circular linked list
 	Data string
 }
 
-func readLastEntry(Note *Notepad) string {
+func readNotes(Note *Notepad) string {
 	return Note.Data
 }
 
-func readFromTop(Note *Notepad) string { //cieves HEAD entry
-	notes := ""
-	for l := Note.Data; &l != nil; l += "\n" {
-		notes += (Note.Data)
+func addEntry(Note *Notepad, Content string) {
+	var sb string
+	SplitContent := strings.Split(Content, " ")
+	for i, cha := range SplitContent {
+		if i > 0 {
+			sb += cha
+		}
 	}
-	return notes
-}
-
-func addEntry(Note *Notepad, content string) {
-	Note.Data += content
+	Note.Data += sb
 	return
 }
 
@@ -77,7 +76,7 @@ func chupdate(ircobj *irc.Connection, event *irc.Event) {
 }
 
 func readConfig(Config *Configuration) {
-	file, err := os.Open("/home/user/.config/ghelper.conf")
+	file, err := os.Open("/home/sir/.config/ghelper.conf")
 	if err != nil {
 		fmt.Println("could not open file", err)
 	}
@@ -91,11 +90,10 @@ func main() {
 	//ircobj is the irc object which we can manipulate as a irc bot
 	Config := new(Configuration)
 	readConfig(Config)
-	ircobj := irc.IRC("ghelper2", "silentmoose2")
-
+	ircobj := irc.IRC("ghelper", "ghelper")
 	Note := new(Notepad)
-
 	ircobj.Connect(Config.IrcServers[0])
+	ircobj.SendRawf("/msg nickserv identify %s", Config.Password)
 	ircobj.Join(Config.IrcChannels[0])
 	//PrivMSG callback function for when bot recives a private message
 	ircobj.AddCallback("PRIVMSG", func(event *irc.Event) {
@@ -108,6 +106,9 @@ func main() {
 		}
 		if strings.Split(event.Message(), " ")[0] == "addNote" && event.Nick == "silentmoose" {
 			addEntry(Note, event.Message())
+		}
+		if strings.Split(event.Message(), " ")[0] == "readNote" && event.Nick == "silentmoose" {
+			ircobj.Privmsg("silentmoose", readNotes(Note))
 		}
 		if strings.Split(event.Message(), " ")[0] == "chupdate" && event.Nick == "silentmoose" {
 			chupdate(ircobj, event)
