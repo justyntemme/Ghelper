@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -33,26 +34,24 @@ type Configuration struct {
 	Password    string
 }
 
-type notepad struct { //circular linked list
-	data      string
-	nextEntry *notepad //next
-	headEntry *notepad //top
+type Notepad struct { //circular linked list
+	Data string
 }
 
-func readLastEntry(notePad *notepad) string {
-	return notePad.data
+func readLastEntry(Note *Notepad) string {
+	return Note.Data
 }
 
-func readFromTop(notePad *notepad) string { //cieves HEAD entry
+func readFromTop(Note *Notepad) string { //cieves HEAD entry
 	notes := ""
-	for l := notePad.data; &l != nil; l += "\n" {
-		notes += (notePad.data)
+	for l := Note.Data; &l != nil; l += "\n" {
+		notes += (Note.Data)
 	}
 	return notes
 }
 
-func addEntry(notePad *notepad, content string) {
-	notePad.data += content
+func addEntry(Note *Notepad, content string) {
+	Note.Data += content
 	return
 }
 
@@ -61,23 +60,6 @@ func startWorkDay() {
 	_, err := c1.Output()
 	if err != nil {
 		return
-	}
-}
-func sendFeed(ircobj *irc.Connection, event *irc.Event) {
-
-}
-
-func Readfeed(ircobj *irc.Connection, event *irc.Event) {
-	IrcFeeds := strings.Split(event.Message(), " ")
-	for _, feed := range IrcFeeds {
-		fmt.Println(feed)
-		if strings.Contains(feed, "#") == true {
-			fmt.Println(feed)
-			ircobj.Join(feed)
-			ircobj.AddCallback("*", func(event *irc.Event) {
-				ircobj.Privmsg("silentmoose", (event.User + ": " + event.Message()))
-			})
-		}
 	}
 }
 
@@ -94,16 +76,27 @@ func chupdate(ircobj *irc.Connection, event *irc.Event) {
 	}
 }
 
+func readConfig(Config *Configuration) {
+	file, err := os.Open("/home/user/.config/ghelper.conf")
+	if err != nil {
+		fmt.Println("could not open file", err)
+	}
+	_, err = toml.DecodeReader(file, &Config)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+}
+
 func main() {
 	//ircobj is the irc object which we can manipulate as a irc bot
-	var Config Configuration
-	toml.DecodeFile("/home/sir/.config/ghelper.json", &Config)
-	ircobj := irc.IRC("ghelp", "ghelp")
+	Config := new(Configuration)
+	readConfig(Config)
+	ircobj := irc.IRC("ghelper2", "silentmoose2")
+
+	Note := new(Notepad)
 
 	ircobj.Connect(Config.IrcServers[0])
-
 	ircobj.Join(Config.IrcChannels[0])
-	ircobj.SendRawf("/msg nickserv identify %s", Config.Password)
 	//PrivMSG callback function for when bot recives a private message
 	ircobj.AddCallback("PRIVMSG", func(event *irc.Event) {
 		ircobj.Privmsg("silentmoose", event.Message())
@@ -111,10 +104,10 @@ func main() {
 
 		//Checks if username is equal to owners username, and if message is email. Check 3 is an optional password check
 		if strings.Split(event.Message(), " ")[0] == "email" && event.Nick == "silentmoose" && strings.Split(event.Arguments[1], " ")[1] == "password" {
-			email.CheckEmail(ircobj, event)
+			Email.CheckEmail(ircobj, event)
 		}
-		if strings.Split(event.Message(), " ")[0] == "feed" && event.Nick == "Silentmoose" {
-			Readfeed(ircobj, event)
+		if strings.Split(event.Message(), " ")[0] == "addNote" && event.Nick == "silentmoose" {
+			addEntry(Note, event.Message())
 		}
 		if strings.Split(event.Message(), " ")[0] == "chupdate" && event.Nick == "silentmoose" {
 			chupdate(ircobj, event)

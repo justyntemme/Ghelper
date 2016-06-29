@@ -1,4 +1,4 @@
-package email
+package Email
 
 import (
 	"encoding/json"
