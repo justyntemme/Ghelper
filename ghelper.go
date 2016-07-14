@@ -51,6 +51,10 @@ func main() {
 			Bot.Chupdate(ircobj, event)
 		case "startWorkDay":
 			Bot.StartWorkDay()
+		case "weather":
+			ircobj.Privmsg(event.Nick, Bot.CheckWeather(67002)) //TODO dynamically call zip code
+		case "help":
+			ircobj.Privmsg(event.Nick, Bot.Help())
 
 		}
 	})
