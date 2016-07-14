@@ -18,80 +18,19 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
-	"time"
 
-	"github.com/BurntSushi/toml"
+	"github.com/justyntemme/Ghelper/bot"
 	"github.com/justyntemme/Ghelper/email"
 	"github.com/thoj/go-ircevent"
 )
 
-type Configuration struct {
-	IrcServers  []string
-	IrcChannels []string
-	Password    string
-}
-
-type Notepad struct { //circular linked list
-	Data string
-}
-
-func readNotes(Note *Notepad) string {
-	return Note.Data
-}
-
-func addEntry(Note *Notepad, Content string) {
-	var sb string
-	SplitContent := strings.Split(Content, " ")
-	for i, cha := range SplitContent {
-		if i > 0 {
-			sb += cha
-		}
-	}
-	Note.Data += sb
-	return
-}
-
-func startWorkDay() {
-	c1 := exec.Command("/home/user/.scripts/startDay.run")
-	_, err := c1.Output()
-	if err != nil {
-		return
-	}
-}
-
-func chupdate(ircobj *irc.Connection, event *irc.Event) {
-	c1 := exec.Command("/usr/bin/zypper", "lp")
-	out, err := c1.Output()
-	out2 := strings.Split(string(out), "\n")
-	if err != nil {
-		return
-	}
-	for i := 0; i < 10; i++ {
-		ircobj.Privmsg(event.Nick, out2[i])
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-func readConfig(Config *Configuration) {
-	file, err := os.Open("/home/sir/.config/ghelper.conf")
-	if err != nil {
-		fmt.Println("could not open file", err)
-	}
-	_, err = toml.DecodeReader(file, &Config)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-}
-
 func main() {
 	//ircobj is the irc object which we can manipulate as a irc bot
-	Config := new(Configuration)
-	readConfig(Config)
+	Config := new(Bot.Configuration)
+	Bot.ReadConfig(Config)
 	ircobj := irc.IRC("ghelper", "ghelper")
-	Note := new(Notepad)
+	Note := new(Bot.Notepad)
 	ircobj.Connect(Config.IrcServers[0])
 	ircobj.SendRawf("/msg nickserv identify %s", Config.Password)
 	ircobj.Join(Config.IrcChannels[0])
@@ -99,22 +38,20 @@ func main() {
 	ircobj.AddCallback("PRIVMSG", func(event *irc.Event) {
 		ircobj.Privmsg("silentmoose", event.Message())
 		fmt.Println(event.Message())
+		switch strings.Split(event.Message(), " ")[0] {
 
-		//Checks if username is equal to owners username, and if message is email. Check 3 is an optional password check
-		if strings.Split(event.Message(), " ")[0] == "email" && event.Nick == "silentmoose" && strings.Split(event.Arguments[1], " ")[1] == "password" {
+		case "email":
 			Email.CheckEmail(ircobj, event)
-		}
-		if strings.Split(event.Message(), " ")[0] == "addNote" && event.Nick == "silentmoose" {
-			addEntry(Note, event.Message())
-		}
-		if strings.Split(event.Message(), " ")[0] == "readNote" && event.Nick == "silentmoose" {
-			ircobj.Privmsg("silentmoose", readNotes(Note))
-		}
-		if strings.Split(event.Message(), " ")[0] == "chupdate" && event.Nick == "silentmoose" {
-			chupdate(ircobj, event)
-		}
-		if strings.Split(event.Message(), " ")[0] == "statWorkDay" && event.Nick == "silentmoose" {
-			startWorkDay()
+		case "addNote":
+			Bot.AddEntry(Note, event.Message())
+		case "readNotes":
+			Bot.ReadNotes(Note)
+			ircobj.Privmsg("silentmoose", Note.Data)
+		case "chupdate":
+			Bot.Chupdate(ircobj, event)
+		case "startWorkDay":
+			Bot.StartWorkDay()
+
 		}
 	})
 	ircobj.Loop()
