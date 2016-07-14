@@ -2,12 +2,14 @@ package Bot
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	owm "github.com/briandowns/openweathermap"
 	"github.com/thoj/go-ircevent"
 )
 
@@ -23,6 +25,10 @@ type Notepad struct { //circular linked list
 
 func ReadNotes(Note *Notepad) string {
 	return Note.Data
+}
+
+func Help() string {
+	return "StartWorkDay\n Chupdate\n AddEntry\n ReadNotes\n"
 }
 
 func AddEntry(Note *Notepad, Content string) {
@@ -45,6 +51,17 @@ func StartWorkDay() {
 	}
 }
 
+func CheckWeather(zip int) string {
+	w, err := owm.NewCurrent("F", "US")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	w.CurrentByZip(zip, "US")
+	return string(w.Cod) //TODO build a complex string of all weather data
+
+}
+
 func Chupdate(ircobj *irc.Connection, event *irc.Event) {
 	c1 := exec.Command("/usr/bin/zypper", "lp")
 	out, err := c1.Output()
@@ -59,7 +76,7 @@ func Chupdate(ircobj *irc.Connection, event *irc.Event) {
 }
 
 func ReadConfig(Config *Configuration) {
-	file, err := os.Open("/home/sir/.config/ghelper.conf")
+	file, err := os.Open("ghelper.conf")
 	if err != nil {
 		fmt.Println("could not open file", err)
 	}
