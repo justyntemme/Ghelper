@@ -28,7 +28,7 @@ func ReadNotes(Note *Notepad) string {
 }
 
 func Help() string {
-	return "StartWorkDay\n Chupdate\n AddEntry\n ReadNotes\n"
+	return "StartWorkDay\t Chupdate\t AddEntry\t ReadNotes\t"
 }
 
 func AddEntry(Note *Notepad, Content string) {
@@ -52,14 +52,14 @@ func StartWorkDay() {
 }
 
 func CheckWeather(zip int) string {
-	w, err := owm.NewCurrent("F", "US")
+	w, err := owm.NewCurrent("F", "EN")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	w.CurrentByZip(zip, "US")
-	return string(w.Cod) //TODO build a complex string of all weather data
-
+	w.CurrentByZip(67002, "US")
+	fmt.Println(w)
+	return "done"
 }
 
 func Chupdate(ircobj *irc.Connection, event *irc.Event) {
